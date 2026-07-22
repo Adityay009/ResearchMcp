@@ -42,6 +42,9 @@ The agent is prompted to distinguish between two different kinds of questions: r
 ## Tools
 
 | Tool | What it does |
+
+**Error handling**: all tools return structured errors (`{"error": "...", "status": "failed"}`) instead of raising exceptions — so a bad paper ID, empty query, or failed download surfaces as a clear message the agent can reason about, rather than crashing the tool call.
+
 |---|---|
 | `search_arxiv` | Search arXiv by keyword, returns titles/authors/abstracts |
 | `get_paper` | Full metadata for one paper by arXiv ID |
@@ -84,6 +87,24 @@ pip install -r agent/requirements.txt
 # Add your Gemini API key
 echo "GOOGLE_API_KEY=your_key_here" > .env
 ```
+
+## Testing
+
+22 automated tests across 4 files, covering the core logic layer (text cleaning, database operations, mocked API calls, and vector search):
+
+```bash
+pip install -r requirements.txt  # includes pytest
+python -m pytest -v
+```
+
+| File | What it covers |
+|---|---|
+| `tests/test_content_tools.py` | PDF text cleaning and reference-section stripping (pure logic, no I/O) |
+| `tests/test_db.py` | SQLite operations, using isolated temp databases per test |
+| `tests/test_arxiv_tools.py` | arXiv API wrapper, with the network call mocked |
+| `tests/test_vector_store.py` | FAISS indexing and semantic search, including a regression test for a duplicate-entry bug found during manual testing |
+
+Database and vector-store tests use `pytest`'s `tmp_path` fixture with `monkeypatch` to redirect storage paths — tests never touch the real `data/` directory.
 
 ### Running the MCP server standalone (with the official Inspector)
 

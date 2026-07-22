@@ -4,7 +4,10 @@ from mcp_server.storage.vector_store import add_paper_to_index, search_similar_p
 
 def save_paper(paper_id: str, title: str, authors: list[str], abstract: str, published: str, pdf_url: str) -> dict:
     """Save a paper to the personal research library (SQLite) and index it for semantic search (FAISS)."""
-    save_paper_to_db(paper_id, title, authors, abstract, published, pdf_url)
+    result = save_paper_to_db(paper_id, title, authors, abstract, published, pdf_url)
+    if result.get("status") == "failed":
+        return result  # propagate the error, don't try to index a paper that failed to save
+
     add_paper_to_index(paper_id, title, abstract)
     return {"status": "saved", "paper_id": paper_id, "title": title}
 

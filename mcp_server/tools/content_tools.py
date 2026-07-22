@@ -42,13 +42,22 @@ def extract_paper_content(paper_id: str, pdf_url: str) -> dict:
         paper_id: The arXiv id, used for caching
         pdf_url: Direct PDF URL, from get_paper_details
     """
-    local_path = _download_pdf(paper_id, pdf_url)
+    if not pdf_url or not pdf_url.strip():
+        return {"error": "pdf_url cannot be empty", "status": "failed"}
 
-    doc = fitz.open(local_path)
-    full_text = ""
-    for page in doc:
-        full_text += page.get_text()
-    doc.close()
+    try:
+        local_path = _download_pdf(paper_id, pdf_url)
+    except Exception as e:
+        return {"error": f"Failed to download PDF: {str(e)}", "status": "failed"}
+
+    try:
+        doc = fitz.open(local_path)
+        full_text = ""
+        for page in doc:
+            full_text += page.get_text()
+        doc.close()
+    except Exception as e:
+        return {"error": f"Failed to extract PDF text: {str(e)}", "status": "failed"}
 
     cleaned = _clean_text(full_text)
     body_only = _truncate_at_references(cleaned)

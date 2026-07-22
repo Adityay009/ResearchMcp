@@ -59,22 +59,29 @@ def add_paper_to_index(paper_id: str, title: str, abstract: str) -> None:
 
 def search_similar_papers(query: str, top_k: int = 5) -> list[dict]:
     """Semantic search over saved papers. Returns closest matches with distance scores."""
-    model = _get_model()
-    index, metadata = _load_index()
-
-    if index.ntotal == 0:
+    if not query or not query.strip():
         return []
 
-    query_vec = model.encode([query])[0].astype("float32")
-    distances, indices = index.search(np.array([query_vec]), min(top_k, index.ntotal))
+    try:
+        model = _get_model()
+        index, metadata = _load_index()
 
-    results = []
-    for dist, idx in zip(distances[0], indices[0]):
-        if idx == -1:
-            continue
-        results.append({
-            "paper_id": metadata[idx]["paper_id"],
-            "title": metadata[idx]["title"],
-            "distance": float(dist),
-        })
-    return results
+        if index.ntotal == 0:
+            return []
+
+        query_vec = model.encode([query])[0].astype("float32")
+        distances, indices = index.search(np.array([query_vec]), min(top_k, index.ntotal))
+
+        results = []
+        for dist, idx in zip(distances[0], indices[0]):
+            if idx == -1:
+                continue
+            results.append({
+                "paper_id": metadata[idx]["paper_id"],
+                "title": metadata[idx]["title"],
+                "distance": float(dist),
+            })
+        return results
+
+    except Exception as e:
+        return [{"error": f"Semantic search failed: {str(e)}"}]

@@ -39,16 +39,23 @@ def init_db():
     conn.close()
 
 
-def save_paper_to_db(paper_id: str, title: str, authors: list[str], abstract: str, published: str, pdf_url: str) -> None:
-    conn = _get_connection()
-    conn.execute(
-        """INSERT OR REPLACE INTO papers (id, title, authors, abstract, published, pdf_url, saved_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (paper_id, title, ", ".join(authors), abstract, published, pdf_url,
-            datetime.now(timezone.utc).isoformat())
-    )
-    conn.commit()
-    conn.close()
+def save_paper_to_db(paper_id: str, title: str, authors: list[str], abstract: str, published: str, pdf_url: str) -> dict:
+    if not paper_id or not title:
+        return {"error": "paper_id and title are required", "status": "failed"}
+
+    try:
+        conn = _get_connection()
+        conn.execute(
+            """INSERT OR REPLACE INTO papers (id, title, authors, abstract, published, pdf_url, saved_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (paper_id, title, ", ".join(authors), abstract, published, pdf_url,
+                datetime.now(timezone.utc).isoformat())
+        )
+        conn.commit()
+        conn.close()
+        return {"status": "saved", "paper_id": paper_id}
+    except Exception as e:
+        return {"error": f"Failed to save paper: {str(e)}", "status": "failed"}
 
 
 def get_saved_paper(paper_id: str) -> dict | None:
