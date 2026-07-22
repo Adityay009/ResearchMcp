@@ -9,6 +9,8 @@ Ask it something like:
 
 The agent autonomously decides which tools to call, in what order, chaining multiple steps together without being told the exact sequence.
 
+An interactive CLI (`agent/cli.py`) lets you have a real multi-turn conversation with the agent — it remembers context within a session, and persists conversation history to SQLite so sessions survive restarts.
+
 ## Architecture
 
 ```
@@ -27,6 +29,15 @@ Synthesized answer, grounded in real tool results
 ```
 
 The MCP server and the agent are fully decoupled — the server is a standalone, protocol-compliant MCP server that works with **any** MCP client (Claude Desktop, other agents), not just the LangGraph agent built here.
+
+## Memory
+
+The agent has two layers of memory, both backed by SQLite (separate from the research library database):
+
+- **Short-term (in-session)**: the full conversation history is passed to the agent on every turn, so follow-up questions ("what was the title of the paper you just saved?") can be answered directly from context without a redundant tool call.
+- **Long-term (persistent)**: every message is saved to `data/conversations.db`. Closing and reopening the CLI resumes the most recent session automatically, with full prior context intact.
+
+The agent is prompted to distinguish between two different kinds of questions: recalling what was *discussed* in the conversation (answered from memory) versus querying the actual state of the saved paper *library* (answered by calling `list_saved_papers`) — these pull from different sources of truth, and the agent correctly picks the right one.
 
 ## Tools
 
@@ -51,12 +62,13 @@ The MCP server and the agent are fully decoupled — the server is a standalone,
 - **PDF extraction**: `pymupdf`
 - **Personal library**: SQLite (metadata) + FAISS (semantic search) + `sentence-transformers` (`all-MiniLM-L6-v2` embeddings)
 - **Agent**: LangGraph (`create_react_agent`) + `langchain-mcp-adapters` + Gemini 2.5 Flash
+- **CLI**: `rich` for formatted terminal output, SQLite for persistent conversation memory
 
 ## Setup
 
 ```bash
 # Clone and enter the repo
-git clone <your-repo-url>
+git clone <https://github.com/Adityay009/ResearchMcp>
 cd researchmcp
 
 # Create and activate a virtual environment
@@ -81,13 +93,27 @@ PYTHONPATH=. mcp dev mcp_server/server.py
 
 Opens a local web UI to test each of the 9 tools individually.
 
-### Running the full agent
+
+### Running the interactive CLI (recommended)
+
+```bash
+python -m agent.cli
+```
+
+Commands available inside the CLI:
+- `/new` — start a fresh conversation session
+- `/sessions` — list all past sessions with message counts
+- `/exit` — quit
+
+Tool calls are printed live as the agent makes them, so you can see its reasoning step by step.
+
+### Running a single scripted query
 
 ```bash
 python agent/graph.py
 ```
 
-Edit the `test_query` variable in `agent/graph.py` to try your own queries.
+Edit the `test_query` variable in `agent/graph.py` to try your own one-off queries.
 
 ## Known limitations
 
@@ -99,3 +125,5 @@ Edit the `test_query` variable in `agent/graph.py` to try your own queries.
 ## Environment notes
 
 Built and tested on macOS (Apple Silicon/M1). If `mcp dev` fails with `spawn uv ENOENT`, it's because the Inspector shells out to [`uv`](https://github.com/astral-sh/uv) regardless of your project setup — install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` and make sure `~/.local/bin` is on your `PATH`.
+
+If you hit a RESOURCE_EXHAUSTED / limit: 0 error from Gemini even on a fresh API key, try a different model (e.g. gemini-2.5-flash instead of gemini-2.0-flash) — free-tier quota allocation varies by model.
