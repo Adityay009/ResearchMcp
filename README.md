@@ -39,11 +39,11 @@ The agent has two layers of memory, both backed by SQLite (separate from the res
 
 The agent is prompted to distinguish between two different kinds of questions: recalling what was *discussed* in the conversation (answered from memory) versus querying the actual state of the saved paper *library* (answered by calling `list_saved_papers`) — these pull from different sources of truth, and the agent correctly picks the right one.
 
+**Error handling**: all tools return structured errors (`{"error": "...", "status": "failed"}`) instead of raising exceptions — so a bad paper ID, empty query, or failed download surfaces as a clear message the agent can reason about, rather than crashing the tool call.
+
 ## Tools
 
 | Tool | What it does |
-
-**Error handling**: all tools return structured errors (`{"error": "...", "status": "failed"}`) instead of raising exceptions — so a bad paper ID, empty query, or failed download surfaces as a clear message the agent can reason about, rather than crashing the tool call.
 
 |---|---|
 | `search_arxiv` | Search arXiv by keyword, returns titles/authors/abstracts |
@@ -71,7 +71,7 @@ The agent is prompted to distinguish between two different kinds of questions: r
 
 ```bash
 # Clone and enter the repo
-git clone <https://github.com/Adityay009/ResearchMcp>
+git clone https://github.com/Adityay009/ResearchMcp
 cd researchmcp
 
 # Create and activate a virtual environment
@@ -126,7 +126,7 @@ Commands available inside the CLI:
 - `/sessions` — list all past sessions with message counts
 - `/exit` — quit
 
-Tool calls are printed live as the agent makes them, so you can see its reasoning step by step.
+Tool calls are displayed live as the agent executes them, providing visibility into the agent's actions and research workflow.
 
 ### Running a single scripted query
 
